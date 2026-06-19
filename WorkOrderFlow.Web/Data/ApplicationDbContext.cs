@@ -1,0 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using WorkOrderFlow.Web.Models;
+
+namespace WorkOrderFlow.Web.Data;
+
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<Customer> Customers => Set<Customer>();
+}
