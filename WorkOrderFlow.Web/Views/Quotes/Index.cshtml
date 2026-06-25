@@ -1,0 +1,69 @@
+@model IEnumerable<WorkOrderFlow.Web.Models.Quote>
+
+@{
+    ViewData["Title"] = "Quotes";
+}
+
+<h1>Quotes</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+
+<table class="table table-sm table-striped">
+    <thead>
+        <tr>
+            <th>Customer</th>
+            <th>Title</th>
+            <th>Labor</th>
+            <th>Parts</th>
+            <th>Discount</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Valid Until</th>
+            <th>Notes</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model)
+{
+    var total = item.LaborCost + item.PartsCost - item.Discount;
+
+        <tr>
+            <td>
+                @(item.Customer?.FullName ?? $"Customer #{item.CustomerId}")
+            </td>
+            <td>
+                @item.Title
+            </td>
+            <td>
+                @item.LaborCost.ToString("N2")
+            </td>
+            <td>
+                @item.PartsCost.ToString("N2")
+            </td>
+            <td>
+                @item.Discount.ToString("N2")
+            </td>
+            <td>
+                <strong>@total.ToString("N2")</strong>
+            </td>
+            <td>
+                @item.Status
+            </td>
+            <td>
+                @item.ValidUntil?.ToString("dd.MM.yyyy HH:mm")
+            </td>
+            <td>
+                @item.Notes
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
