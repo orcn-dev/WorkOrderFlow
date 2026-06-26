@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
+using WorkOrderFlow.Web.Services;
 using WorkOrderFlow.Web.Models;
 
 namespace WorkOrderFlow.Web.Controllers
@@ -13,10 +14,12 @@ namespace WorkOrderFlow.Web.Controllers
     public class QuotesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly QuotePdfService _quotePdfService;
 
-        public QuotesController(ApplicationDbContext context)
+        public QuotesController(ApplicationDbContext context, QuotePdfService quotePdfService)
         {
             _context = context;
+            _quotePdfService = quotePdfService;
         }
 
         // GET: Quotes
@@ -156,6 +159,23 @@ namespace WorkOrderFlow.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        public async Task<IActionResult> DownloadPdf(int id)
+        {
+            var quote = await _context.Quotes
+                .Include(q => q.Customer)
+                .FirstOrDefaultAsync(q => q.Id == id);
+
+            if (quote == null)
+            {
+                return NotFound();
+            }
+
+            var pdfBytes = _quotePdfService.Generate(quote);
+
+            Response.Headers.ContentDisposition = $"inline; filename=\"quote-{quote.Id}.pdf\"";
+
+            return File(pdfBytes, "application/pdf");
+        }
         private bool QuoteExists(int id)
         {
             return _context.Quotes.Any(e => e.Id == id);
