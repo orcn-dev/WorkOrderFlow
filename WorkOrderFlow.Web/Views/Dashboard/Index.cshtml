@@ -83,6 +83,35 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Inventory Items</div>
+                <h2>@Model.TotalInventoryItems</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-warning">
+            <div class="card-body">
+                <div class="text-muted">Low Stock Items</div>
+                <h2>@Model.LowStockItemsCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-success">
+            <div class="card-body">
+                <div class="text-muted">Inventory Cost Value</div>
+                <h2>@Model.InventoryCostValue.ToString("N2") ₺</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
 <h3 class="mb-3">Recent Work Orders</h3>
 
 <table class="table table-sm table-striped align-middle">
@@ -137,3 +166,42 @@
 }
     </tbody>
 </table>
+
+<h3 class="mt-4 mb-3">Low Stock Items</h3>
+
+@if (!Model.LowStockItems.Any())
+{
+    <div class="alert alert-success">
+        No low stock items. Inventory looks healthy.
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>On Hand</th>
+                <th>Reorder Level</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in Model.LowStockItems)
+{
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Sku</td>
+                <td>@item.Category</td>
+                <td>
+                    <span class="badge bg-danger">@item.QuantityOnHand</span>
+                </td>
+                <td>@item.ReorderLevel</td>
+                <td>@item.Location</td>
+            </tr>
+}
+        </tbody>
+    </table>
+}

@@ -20,5 +20,13 @@ public class DashboardViewModel
 
     public decimal EstimatedRevenue { get; set; }
 
+    public int TotalInventoryItems { get; set; }
+
+    public int LowStockItemsCount { get; set; }
+
+    public decimal InventoryCostValue { get; set; }
+
     public List<WorkOrder> RecentWorkOrders { get; set; } = new();
+
+    public List<InventoryItem> LowStockItems { get; set; } = new();
 }
