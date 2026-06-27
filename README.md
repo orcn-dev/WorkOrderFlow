@@ -283,19 +283,37 @@ PDF examples:
 
 ## Screenshots
 
-Recommended screenshots to include in the repository:
+### Dashboard
 
-```text
-screenshots/dashboard.png
-screenshots/customers.png
-screenshots/quotes.png
-screenshots/quote-pdf.png
-screenshots/work-orders.png
-screenshots/work-order-details.png
-screenshots/work-order-pdf.png
-screenshots/inventory.png
-screenshots/materials-used.png
-```
+![Dashboard](screenshots/dashboard.png)
+
+### Quotes
+
+![Quotes](screenshots/quotes.png)
+
+### Quote PDF Export
+
+![Quote PDF](screenshots/quote-pdf.png)
+
+### Work Orders
+
+![Work Orders](screenshots/work-orders.png)
+
+### Work Order Details
+
+![Work Order Details](screenshots/work-order-details.png)
+
+### Work Order PDF Export
+
+![Work Order PDF](screenshots/work-order-pdf.png)
+
+### Inventory
+
+![Inventory](screenshots/inventory.png)
+
+### Materials Used
+
+![Materials Used](screenshots/materials-used.png)
 
 ---
 
