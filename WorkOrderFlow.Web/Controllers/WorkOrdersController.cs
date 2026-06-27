@@ -42,6 +42,15 @@ public class WorkOrdersController : Controller
             return NotFound();
         }
 
+        var materials = await _context.WorkOrderMaterials
+            .Include(m => m.InventoryItem)
+            .Where(m => m.WorkOrderId == workOrder.Id)
+            .OrderByDescending(m => m.UsedAt)
+            .ToListAsync();
+
+        ViewData["Materials"] = materials;
+        ViewData["MaterialTotal"] = materials.Sum(m => m.QuantityUsed * m.UnitPrice);
+
         return View(workOrder);
     }
 

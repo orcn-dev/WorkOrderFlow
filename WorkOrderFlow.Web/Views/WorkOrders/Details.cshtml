@@ -1,78 +1,88 @@
 @model WorkOrderFlow.Web.Models.WorkOrder
+@using WorkOrderFlow.Web.Models
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Work Order Details";
+
+    var materials = ViewData["Materials"] as List<WorkOrderMaterial> ?? new List<WorkOrderMaterial>();
+    var materialTotal = ViewData["MaterialTotal"] as decimal? ?? 0m;
 }
 
-<h1>Details</h1>
+<h1>Work Order Details</h1>
 
-<div>
-    <h4>WorkOrder</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Customer)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Customer.Id)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Quote)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Quote.Id)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Priority)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Priority)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DueDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DueDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CompletedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CompletedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ResolutionNote)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ResolutionNote)
-        </dd>
-    </dl>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h3>@Model.Title</h3>
+
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <p><strong>Customer:</strong> @(Model.Customer?.FullName ?? $"Customer #{Model.CustomerId}")</p>
+                <p><strong>Quote:</strong> @(Model.Quote?.Title ?? "-")</p>
+                <p><strong>Description:</strong> @Model.Description</p>
+            </div>
+
+            <div class="col-md-6">
+                <p><strong>Status:</strong> @Model.Status</p>
+                <p><strong>Priority:</strong> @Model.Priority</p>
+                <p><strong>Due Date:</strong> @Model.DueDate?.ToString("dd.MM.yyyy")</p>
+                <p><strong>Created:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ResolutionNote))
+        {
+            <hr />
+            <p><strong>Resolution Note:</strong> @Model.ResolutionNote</p>
+        }
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<h3>Materials Used</h3>
+
+@if (!materials.Any())
+{
+    <div class="alert alert-info">
+        No materials have been used for this work order yet.
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Inventory Item</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+                <th>Used At</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in materials)
+{
+            <tr>
+                <td>@(item.InventoryItem?.Name ?? $"Inventory Item #{item.InventoryItemId}")</td>
+                <td>@item.QuantityUsed</td>
+                <td>@item.UnitPrice.ToString("N2") ₺</td>
+                <td><strong>@item.LineTotal.ToString("N2") ₺</strong></td>
+                <td>@item.UsedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                <td>@item.Notes</td>
+            </tr>
+}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-end"><strong>Material Total</strong></td>
+                <td><strong>@materialTotal.ToString("N2") ₺</strong></td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+}
+
+<div class="mt-3">
+    <a asp-controller="WorkOrderMaterials" asp-action="Create" class="btn btn-primary">Add Material</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Work Order</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
 </div>
