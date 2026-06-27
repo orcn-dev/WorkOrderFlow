@@ -26,6 +26,12 @@ public class DashboardViewModel
 
     public decimal InventoryCostValue { get; set; }
 
+    public int MaterialsUsedCount { get; set; }
+
+    public decimal MaterialUsageValue { get; set; }
+
+    public int WorkOrdersWithMaterials { get; set; }
+
     public List<WorkOrder> RecentWorkOrders { get; set; } = new();
 
     public List<InventoryItem> LowStockItems { get; set; } = new();

@@ -110,6 +110,32 @@
             </div>
         </div>
     </div>
+    <div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Materials Used</div>
+                <h2>@Model.MaterialsUsedCount</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-success">
+            <div class="card-body">
+                <div class="text-muted">Material Usage Value</div>
+                <h2>@Model.MaterialUsageValue.ToString("N2") ₺</h2>
+            </div>
+        </div>
+    </div
+    <div class="col-md-4">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body">
+                <div class="text-muted">Work Orders With Materials</div>
+                <h2>@Model.WorkOrdersWithMaterials</h2>
+            </div>
+        </div>
+    </div>
+</div>
 </div>
 
 <h3 class="mb-3">Recent Work Orders</h3>

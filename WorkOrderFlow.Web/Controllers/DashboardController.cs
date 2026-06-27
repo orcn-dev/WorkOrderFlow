@@ -23,6 +23,10 @@ public class DashboardController : Controller
             .OrderBy(i => i.Name)
             .ToListAsync();
 
+        var materialUsages = await _context.WorkOrderMaterials
+            .Include(m => m.InventoryItem)
+            .ToListAsync();
+
         var estimatedRevenue = await _context.Quotes
             .Where(q => q.Status == QuoteStatus.Sent || q.Status == QuoteStatus.Accepted)
             .Select(q => (decimal?)(q.LaborCost + q.PartsCost - q.Discount))
@@ -66,6 +70,15 @@ public class DashboardController : Controller
             LowStockItemsCount = inventoryItems.Count(i => i.IsLowStock),
 
             InventoryCostValue = inventoryItems.Sum(i => i.QuantityOnHand * i.UnitCost),
+
+            MaterialsUsedCount = materialUsages.Count,
+
+            MaterialUsageValue = materialUsages.Sum(m => m.QuantityUsed * m.UnitPrice),
+
+            WorkOrdersWithMaterials = materialUsages
+                .Select(m => m.WorkOrderId)
+                .Distinct()
+                .Count(),
 
             RecentWorkOrders = await _context.WorkOrders
                 .Include(w => w.Customer)
