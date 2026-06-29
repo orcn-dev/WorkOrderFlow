@@ -32,6 +32,12 @@ public class DashboardController : Controller
             .Select(q => (decimal?)(q.LaborCost + q.PartsCost - q.Discount))
             .SumAsync() ?? 0m;
 
+        var lowStockItems = inventoryItems
+            .Where(i => i.QuantityOnHand <= i.ReorderLevel)
+            .OrderBy(i => i.QuantityOnHand)
+            .Take(5)
+            .ToList();
+
         var model = new DashboardViewModel
         {
             TotalCustomers = await _context.Customers.CountAsync(),
@@ -67,7 +73,7 @@ public class DashboardController : Controller
 
             TotalInventoryItems = inventoryItems.Count,
 
-            LowStockItemsCount = inventoryItems.Count(i => i.IsLowStock),
+            LowStockItemsCount = lowStockItems.Count,
 
             InventoryCostValue = inventoryItems.Sum(i => i.QuantityOnHand * i.UnitCost),
 
@@ -80,6 +86,22 @@ public class DashboardController : Controller
                 .Distinct()
                 .Count(),
 
+            WorkOrderNewCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.New),
+            WorkOrderApprovedCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.Approved),
+            WorkOrderInProgressCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.InProgress),
+            WorkOrderWaitingPartsCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.WaitingParts),
+            WorkOrderCompletedCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.Completed),
+            WorkOrderDeliveredCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.Delivered),
+            WorkOrderCancelledCount = await _context.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.Cancelled),
+
+            QuoteDraftCount = await _context.Quotes.CountAsync(q => q.Status == QuoteStatus.Draft),
+            QuoteSentCount = await _context.Quotes.CountAsync(q => q.Status == QuoteStatus.Sent),
+            QuoteAcceptedCount = await _context.Quotes.CountAsync(q => q.Status == QuoteStatus.Accepted),
+            QuoteRejectedCount = await _context.Quotes.CountAsync(q => q.Status == QuoteStatus.Rejected),
+            QuoteExpiredCount = await _context.Quotes.CountAsync(q => q.Status == QuoteStatus.Expired),
+
+            InventoryHealthyItemsCount = inventoryItems.Count - lowStockItems.Count,
+
             RecentWorkOrders = await _context.WorkOrders
                 .Include(w => w.Customer)
                 .Include(w => w.Quote)
@@ -87,11 +109,7 @@ public class DashboardController : Controller
                 .Take(5)
                 .ToListAsync(),
 
-            LowStockItems = inventoryItems
-                .Where(i => i.IsLowStock)
-                .OrderBy(i => i.QuantityOnHand)
-                .Take(5)
-                .ToList()
+            LowStockItems = lowStockItems
         };
 
         return View(model);

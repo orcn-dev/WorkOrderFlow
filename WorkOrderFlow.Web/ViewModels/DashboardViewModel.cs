@@ -32,6 +32,32 @@ public class DashboardViewModel
 
     public int WorkOrdersWithMaterials { get; set; }
 
+    public int WorkOrderNewCount { get; set; }
+
+    public int WorkOrderApprovedCount { get; set; }
+
+    public int WorkOrderInProgressCount { get; set; }
+
+    public int WorkOrderWaitingPartsCount { get; set; }
+
+    public int WorkOrderCompletedCount { get; set; }
+
+    public int WorkOrderDeliveredCount { get; set; }
+
+    public int WorkOrderCancelledCount { get; set; }
+
+    public int QuoteDraftCount { get; set; }
+
+    public int QuoteSentCount { get; set; }
+
+    public int QuoteAcceptedCount { get; set; }
+
+    public int QuoteRejectedCount { get; set; }
+
+    public int QuoteExpiredCount { get; set; }
+
+    public int InventoryHealthyItemsCount { get; set; }
+
     public List<WorkOrder> RecentWorkOrders { get; set; } = new();
 
     public List<InventoryItem> LowStockItems { get; set; } = new();

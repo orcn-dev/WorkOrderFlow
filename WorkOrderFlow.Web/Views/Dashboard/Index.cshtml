@@ -110,7 +110,9 @@
             </div>
         </div>
     </div>
-    <div class="row g-3 mb-4">
+</div>
+
+<div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="card shadow-sm">
             <div class="card-body">
@@ -119,6 +121,7 @@
             </div>
         </div>
     </div>
+
     <div class="col-md-4">
         <div class="card shadow-sm border-success">
             <div class="card-body">
@@ -126,7 +129,8 @@
                 <h2>@Model.MaterialUsageValue.ToString("N2") ₺</h2>
             </div>
         </div>
-    </div
+    </div>
+
     <div class="col-md-4">
         <div class="card shadow-sm border-primary">
             <div class="card-body">
@@ -136,62 +140,99 @@
         </div>
     </div>
 </div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Work Orders by Status</h5>
+                <canvas id="workOrderStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Quotes by Status</h5>
+                <canvas id="quoteStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">Inventory Health</h5>
+                <canvas id="inventoryHealthChart"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
 <h3 class="mb-3">Recent Work Orders</h3>
 
-<table class="table table-sm table-striped align-middle">
-    <thead>
-        <tr>
-            <th>Customer</th>
-            <th>Quote</th>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Due Date</th>
-        </tr>
-    </thead>
-    <tbody>
+@if (!Model.RecentWorkOrders.Any())
+{
+    <div class="alert alert-info">
+        No recent work orders yet.
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Quote</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Due Date</th>
+            </tr>
+        </thead>
+        <tbody>
 @foreach (var item in Model.RecentWorkOrders)
 {
-        <tr>
-            <td>@(item.Customer?.FullName ?? $"Customer #{item.CustomerId}")</td>
-            <td>@(item.Quote?.Title ?? "-")</td>
-            <td>@item.Title</td>
-            <td>
-                @{
-                    var statusClass = item.Status switch
-                    {
-                        WorkOrderStatus.New => "badge bg-secondary",
-                        WorkOrderStatus.Approved => "badge bg-info text-dark",
-                        WorkOrderStatus.InProgress => "badge bg-primary",
-                        WorkOrderStatus.WaitingParts => "badge bg-warning text-dark",
-                        WorkOrderStatus.Completed => "badge bg-success",
-                        WorkOrderStatus.Delivered => "badge bg-dark",
-                        WorkOrderStatus.Cancelled => "badge bg-danger",
-                        _ => "badge bg-secondary"
-                    };
-                }
-                <span class="@statusClass">@item.Status</span>
-            </td>
-            <td>
-                @{
-                    var priorityClass = item.Priority switch
-                    {
-                        WorkOrderPriority.Low => "badge bg-secondary",
-                        WorkOrderPriority.Medium => "badge bg-info text-dark",
-                        WorkOrderPriority.High => "badge bg-warning text-dark",
-                        WorkOrderPriority.Urgent => "badge bg-danger",
-                        _ => "badge bg-secondary"
-                    };
-                }
-                <span class="@priorityClass">@item.Priority</span>
-            </td>
-            <td>@item.DueDate?.ToString("dd.MM.yyyy")</td>
-        </tr>
+            <tr>
+                <td>@(item.Customer?.FullName ?? $"Customer #{item.CustomerId}")</td>
+                <td>@(item.Quote?.Title ?? "-")</td>
+                <td>@item.Title</td>
+                <td>
+                    @{
+                        var statusClass = item.Status switch
+                        {
+                            WorkOrderStatus.New => "badge bg-secondary",
+                            WorkOrderStatus.Approved => "badge bg-info text-dark",
+                            WorkOrderStatus.InProgress => "badge bg-primary",
+                            WorkOrderStatus.WaitingParts => "badge bg-warning text-dark",
+                            WorkOrderStatus.Completed => "badge bg-success",
+                            WorkOrderStatus.Delivered => "badge bg-dark",
+                            WorkOrderStatus.Cancelled => "badge bg-danger",
+                            _ => "badge bg-secondary"
+                        };
+                    }
+                    <span class="@statusClass">@item.Status</span>
+                </td>
+                <td>
+                    @{
+                        var priorityClass = item.Priority switch
+                        {
+                            WorkOrderPriority.Low => "badge bg-secondary",
+                            WorkOrderPriority.Medium => "badge bg-info text-dark",
+                            WorkOrderPriority.High => "badge bg-warning text-dark",
+                            WorkOrderPriority.Urgent => "badge bg-danger",
+                            _ => "badge bg-secondary"
+                        };
+                    }
+                    <span class="@priorityClass">@item.Priority</span>
+                </td>
+                <td>@item.DueDate?.ToString("dd.MM.yyyy")</td>
+            </tr>
 }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+}
 
 <h3 class="mt-4 mb-3">Low Stock Items</h3>
 
@@ -230,4 +271,85 @@ else
 }
         </tbody>
     </table>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const workOrderStatusChart = document.getElementById('workOrderStatusChart');
+        const quoteStatusChart = document.getElementById('quoteStatusChart');
+        const inventoryHealthChart = document.getElementById('inventoryHealthChart');
+
+        new Chart(workOrderStatusChart, {
+            type: 'doughnut',
+            data: {
+                labels: ['New', 'Approved', 'In Progress', 'Waiting Parts', 'Completed', 'Delivered', 'Cancelled'],
+                datasets: [{
+                    data: [
+                        @Model.WorkOrderNewCount,
+                        @Model.WorkOrderApprovedCount,
+                        @Model.WorkOrderInProgressCount,
+                        @Model.WorkOrderWaitingPartsCount,
+                        @Model.WorkOrderCompletedCount,
+                        @Model.WorkOrderDeliveredCount,
+                        @Model.WorkOrderCancelledCount
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        new Chart(quoteStatusChart, {
+            type: 'doughnut',
+            data: {
+                labels: ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired'],
+                datasets: [{
+                    data: [
+                        @Model.QuoteDraftCount,
+                        @Model.QuoteSentCount,
+                        @Model.QuoteAcceptedCount,
+                        @Model.QuoteRejectedCount,
+                        @Model.QuoteExpiredCount
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        new Chart(inventoryHealthChart, {
+            type: 'doughnut',
+            data: {
+                labels: ['Healthy', 'Low Stock'],
+                datasets: [{
+                    data: [
+                        @Model.InventoryHealthyItemsCount,
+                        @Model.LowStockItemsCount
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
 }
