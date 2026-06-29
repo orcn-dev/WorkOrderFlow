@@ -20,9 +20,32 @@ namespace WorkOrderFlow.Web.Controllers
         }
 
         // GET: InventoryItems
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, bool lowStockOnly = false)
         {
-            return View(await _context.InventoryItems.ToListAsync());
+            var inventoryItems = _context.InventoryItems.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                inventoryItems = inventoryItems.Where(i =>
+                    i.Name.Contains(search) ||
+                    (i.Sku != null && i.Sku.Contains(search)) ||
+                    i.Category.Contains(search) ||
+                    (i.SupplierName != null && i.SupplierName.Contains(search)) ||
+                    (i.Location != null && i.Location.Contains(search)));
+            }
+
+            if (lowStockOnly)
+            {
+                inventoryItems = inventoryItems.Where(i => i.QuantityOnHand <= i.ReorderLevel);
+            }
+
+            ViewData["CurrentSearch"] = search;
+            ViewData["LowStockOnly"] = lowStockOnly;
+
+            return View(await inventoryItems
+                .OrderBy(i => i.QuantityOnHand <= i.ReorderLevel ? 0 : 1)
+                .ThenBy(i => i.Name)
+                .ToListAsync());
         }
 
         // GET: InventoryItems/Details/5

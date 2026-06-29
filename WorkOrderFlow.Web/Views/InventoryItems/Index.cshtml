@@ -1,95 +1,116 @@
 @model IEnumerable<WorkOrderFlow.Web.Models.InventoryItem>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Inventory";
+
+    var currentSearch = ViewData["CurrentSearch"] as string;
+    var lowStockOnly = ViewData["LowStockOnly"] as bool? ?? false;
 }
 
-<h1>Index</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-0">Inventory</h1>
+        <div class="text-muted">Track stock levels, pricing, suppliers and reorder thresholds.</div>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Sku)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Category)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.QuantityOnHand)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ReorderLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UnitCost)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SalePrice)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SupplierName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Location)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Notes)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Sku)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Category)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.QuantityOnHand)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ReorderLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UnitCost)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.SalePrice)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.SupplierName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Location)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Notes)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+    <a asp-action="Create" class="btn btn-primary">Create New Item</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-3 align-items-end">
+            <div class="col-md-7">
+                <label class="form-label">Search</label>
+                <input type="text"
+                       name="search"
+                       value="@currentSearch"
+                       class="form-control"
+                       placeholder="Search name, SKU, category, supplier or location..." />
+            </div>
+
+            <div class="col-md-3">
+                <div class="form-check mb-2">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="lowStockOnly"
+                           value="true"
+                           id="lowStockOnly"
+                           @(lowStockOnly ? "checked" : "") />
+                    <label class="form-check-label" for="lowStockOnly">
+                        Low stock only
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-dark">Filter</button>
+            </div>
+
+            <div class="col-md-12">
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Clear filters</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No inventory items found for the selected filters.
+    </div>
 }
-    </tbody>
-</table>
+else
+{
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>On Hand</th>
+                <th>Reorder Level</th>
+                <th>Unit Cost</th>
+                <th>Sale Price</th>
+                <th>Supplier</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in Model)
+{
+    var isLowStock = item.QuantityOnHand <= item.ReorderLevel;
+
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Sku</td>
+                <td>@item.Category</td>
+                <td>
+                    <strong>@item.QuantityOnHand</strong>
+                </td>
+                <td>@item.ReorderLevel</td>
+                <td>@item.UnitCost.ToString("N2") ₺</td>
+                <td>@item.SalePrice.ToString("N2") ₺</td>
+                <td>@item.SupplierName</td>
+                <td>@item.Location</td>
+                <td>
+                    @if (isLowStock)
+                    {
+                        <span class="badge bg-danger">Low Stock</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success">Healthy</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+}
+        </tbody>
+    </table>
+}
