@@ -224,6 +224,122 @@ public class WorkOrdersController : Controller
         return File(pdfBytes, "application/pdf");
     }
 
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> StartWork(int id)
+{
+    var workOrder = await _context.WorkOrders.FindAsync(id);
+
+    if (workOrder == null)
+    {
+        return NotFound();
+    }
+
+    workOrder.Status = WorkOrderStatus.InProgress;
+    workOrder.CompletedAt = null;
+
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id });
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> MarkWaitingParts(int id)
+{
+    var workOrder = await _context.WorkOrders.FindAsync(id);
+
+    if (workOrder == null)
+    {
+        return NotFound();
+    }
+
+    workOrder.Status = WorkOrderStatus.WaitingParts;
+    workOrder.CompletedAt = null;
+
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id });
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> CompleteWork(int id)
+{
+    var workOrder = await _context.WorkOrders.FindAsync(id);
+
+    if (workOrder == null)
+    {
+        return NotFound();
+    }
+
+    workOrder.Status = WorkOrderStatus.Completed;
+    workOrder.CompletedAt = DateTime.UtcNow;
+
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id });
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> MarkDelivered(int id)
+{
+    var workOrder = await _context.WorkOrders.FindAsync(id);
+
+    if (workOrder == null)
+    {
+        return NotFound();
+    }
+
+    workOrder.Status = WorkOrderStatus.Delivered;
+
+    if (workOrder.CompletedAt == null)
+    {
+        workOrder.CompletedAt = DateTime.UtcNow;
+    }
+
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id });
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ReopenWork(int id)
+{
+    var workOrder = await _context.WorkOrders.FindAsync(id);
+
+    if (workOrder == null)
+    {
+        return NotFound();
+    }
+
+    workOrder.Status = WorkOrderStatus.InProgress;
+    workOrder.CompletedAt = null;
+
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id });
+}
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelWork(int id)
+    {
+        var workOrder = await _context.WorkOrders.FindAsync(id);
+
+        if (workOrder == null)
+        {
+            return NotFound();
+        }
+
+        workOrder.Status = WorkOrderStatus.Cancelled;
+        workOrder.CompletedAt = null;
+
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
     private bool WorkOrderExists(int id)
     {
         return _context.WorkOrders.Any(e => e.Id == id);

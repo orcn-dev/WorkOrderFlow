@@ -26,6 +26,12 @@
                 <p><strong>Priority:</strong> @Model.Priority</p>
                 <p><strong>Due Date:</strong> @Model.DueDate?.ToString("dd.MM.yyyy")</p>
                 <p><strong>Created:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+                <p>
+                    <strong>Completed:</strong>
+                    @(Model.CompletedAt.HasValue
+                        ? Model.CompletedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        : "-")
+                </p>
             </div>
         </div>
 
@@ -80,7 +86,54 @@ else
         </tfoot>
     </table>
 }
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Workflow Actions</h5>
 
+        <div class="d-flex flex-wrap gap-2">
+            @if (Model.Status == WorkOrderStatus.New || Model.Status == WorkOrderStatus.Approved || Model.Status == WorkOrderStatus.WaitingParts)
+            {
+                <form asp-action="StartWork" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-primary btn-sm">Start Work</button>
+                </form>
+            }
+
+            @if (Model.Status == WorkOrderStatus.InProgress)
+            {
+                <form asp-action="MarkWaitingParts" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-warning btn-sm">Waiting Parts</button>
+                </form>
+
+                <form asp-action="CompleteWork" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-success btn-sm">Complete</button>
+                </form>
+            }
+
+            @if (Model.Status == WorkOrderStatus.Completed)
+            {
+                <form asp-action="MarkDelivered" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-dark btn-sm">Mark Delivered</button>
+                </form>
+            }
+
+            @if (Model.Status == WorkOrderStatus.Completed || Model.Status == WorkOrderStatus.Delivered || Model.Status == WorkOrderStatus.Cancelled)
+            {
+                <form asp-action="ReopenWork" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Reopen</button>
+                </form>
+            }
+
+            @if (Model.Status != WorkOrderStatus.Completed &&
+                 Model.Status != WorkOrderStatus.Delivered &&
+                 Model.Status != WorkOrderStatus.Cancelled)
+            {
+                <form asp-action="CancelWork" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Cancel</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
 <div class="mt-3">
     <a asp-controller="WorkOrderMaterials" asp-action="Create" class="btn btn-primary">Add Material</a>
     <a asp-action="DownloadPdf" asp-route-id="@Model.Id" class="btn btn-success">PDF</a>
