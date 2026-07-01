@@ -375,12 +375,19 @@ Workflow examples:
 ```
 
 ---
-
 ## Screenshots
 
 ### Dashboard
 
 ![Dashboard](screenshots/dashboard.png)
+
+### Customers
+
+![Customers](screenshots/customers.png)
+
+### Customer 360 View
+
+![Customer 360 View](screenshots/customer-360.png)
 
 ### Quotes
 
@@ -398,6 +405,10 @@ Workflow examples:
 
 ![Work Order Details](screenshots/work-order-details.png)
 
+### Work Order Status Timeline
+
+![Work Order Status Timeline](screenshots/work-order-timeline.png)
+
 ### Work Order PDF Export
 
 ![Work Order PDF](screenshots/work-order-pdf.png)
@@ -405,6 +416,14 @@ Workflow examples:
 ### Inventory
 
 ![Inventory](screenshots/inventory.png)
+
+### Manual Stock Adjustment
+
+![Manual Stock Adjustment](screenshots/adjust-stock.png)
+
+### Stock Movements
+
+![Stock Movements](screenshots/stock-movements.png)
 
 ### Materials Used
 
