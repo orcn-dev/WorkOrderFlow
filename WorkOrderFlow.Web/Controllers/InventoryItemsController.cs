@@ -3,16 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
 using WorkOrderFlow.Web.ViewModels;
-
+using WorkOrderFlow.Web.Services;
 namespace WorkOrderFlow.Web.Controllers;
 
 public class InventoryItemsController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly InventoryStockService _stockService;
 
-    public InventoryItemsController(ApplicationDbContext context)
+    public InventoryItemsController(
+        ApplicationDbContext context,
+        InventoryStockService stockService)
     {
         _context = context;
+        _stockService = stockService;
     }
 
     public async Task<IActionResult> Index(string? search, bool lowStockOnly = false)
@@ -206,57 +210,51 @@ public class InventoryItemsController : Controller
         return View(model);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
+[HttpPost]
+[ValidateAntiForgeryToken]
     public async Task<IActionResult> AdjustStock(StockAdjustmentViewModel model)
     {
-        var inventoryItem = await _context.InventoryItems.FindAsync(model.InventoryItemId);
+        var inventoryItem = await _context.InventoryItems
+            .FirstOrDefaultAsync(i => i.Id == model.InventoryItemId);
 
         if (inventoryItem == null)
         {
             return NotFound();
         }
 
-        model.ItemName = inventoryItem.Name;
-        model.Sku = inventoryItem.Sku;
-        model.CurrentQuantity = inventoryItem.QuantityOnHand;
-
         if (model.QuantityChange == 0)
         {
-            ModelState.AddModelError("QuantityChange", "Quantity change cannot be zero.");
-        }
-
-        var newQuantity = inventoryItem.QuantityOnHand + model.QuantityChange;
-
-        if (newQuantity < 0)
-        {
-            ModelState.AddModelError("QuantityChange", $"Stock cannot go below zero. Current quantity: {inventoryItem.QuantityOnHand}");
+            ModelState.AddModelError(nameof(model.QuantityChange), "Quantity change cannot be zero.");
         }
 
         if (!ModelState.IsValid)
         {
+            model.ItemName = inventoryItem.Name;
+            model.Sku = inventoryItem.Sku;
+            model.CurrentQuantity = inventoryItem.QuantityOnHand;
+
             return View(model);
         }
 
-        inventoryItem.QuantityOnHand = newQuantity;
+        var success = await _stockService.ApplyStockMovementAsync(
+            inventoryItem.Id,
+            model.QuantityChange,
+            InventoryTransactionType.ManualAdjustment,
+            model.Notes ?? "Manual stock adjustment");
 
-        _context.InventoryTransactions.Add(new InventoryTransaction
+        if (!success)
         {
-            InventoryItemId = inventoryItem.Id,
-            WorkOrderId = null,
-            Type = InventoryTransactionType.ManualAdjustment,
-            QuantityChange = model.QuantityChange,
-            QuantityAfter = inventoryItem.QuantityOnHand,
-            Notes = string.IsNullOrWhiteSpace(model.Notes)
-                ? "Manual stock adjustment"
-                : model.Notes
-        });
+            ModelState.AddModelError(nameof(model.QuantityChange), "Stock adjustment could not be applied. Quantity cannot go below zero.");
 
-        await _context.SaveChangesAsync();
+            model.ItemName = inventoryItem.Name;
+            model.Sku = inventoryItem.Sku;
+            model.CurrentQuantity = inventoryItem.QuantityOnHand;
 
-        return RedirectToAction("Index", "InventoryTransactions");
+            return View(model);
+        }
+
+        return RedirectToAction(nameof(Index));
     }
-
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)

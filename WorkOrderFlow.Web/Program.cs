@@ -15,6 +15,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<QuotePdfService>();
 builder.Services.AddScoped<WorkOrderPdfService>();
 builder.Services.AddScoped<WorkOrderWorkflowService>();
+builder.Services.AddScoped<InventoryStockService>();
 
 var app = builder.Build();
 
