@@ -20,10 +20,26 @@ namespace WorkOrderFlow.Web.Controllers
         }
 
         // GET: Customers
-        public async Task<IActionResult> Index()
-        {
-            return View(await _context.Customers.ToListAsync());
-        }
+       public async Task<IActionResult> Index(string? search)
+{
+    var customers = _context.Customers.AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        customers = customers.Where(c =>
+            c.FullName.Contains(search) ||
+            (c.CompanyName != null && c.CompanyName.Contains(search)) ||
+            c.Phone.Contains(search) ||
+            (c.Email != null && c.Email.Contains(search)) ||
+            (c.Address != null && c.Address.Contains(search)));
+    }
+
+    ViewData["CurrentSearch"] = search;
+
+    return View(await customers
+        .OrderByDescending(c => c.CreatedAt)
+        .ToListAsync());
+}
 
         // GET: Customers/Details/5
       
