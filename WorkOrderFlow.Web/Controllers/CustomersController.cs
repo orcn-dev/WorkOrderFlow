@@ -26,22 +26,45 @@ namespace WorkOrderFlow.Web.Controllers
         }
 
         // GET: Customers/Details/5
+      
         public async Task<IActionResult> Details(int? id)
+    {
+        if (id == null)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var customer = await _context.Customers
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            return View(customer);
+            return NotFound();
         }
+
+        var customer = await _context.Customers
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (customer == null)
+        {
+            return NotFound();
+        }
+
+        var quotes = await _context.Quotes
+            .Where(q => q.CustomerId == customer.Id)
+            .OrderByDescending(q => q.CreatedAt)
+            .ToListAsync();
+
+        var workOrders = await _context.WorkOrders
+            .Include(w => w.Quote)
+            .Where(w => w.CustomerId == customer.Id)
+            .OrderByDescending(w => w.CreatedAt)
+            .ToListAsync();
+
+        ViewData["Quotes"] = quotes;
+        ViewData["WorkOrders"] = workOrders;
+
+        ViewData["QuoteTotal"] = quotes.Sum(q => q.LaborCost + q.PartsCost - q.Discount);
+
+        ViewData["OpenWorkOrders"] = workOrders.Count(w =>
+            w.Status != WorkOrderStatus.Completed &&
+            w.Status != WorkOrderStatus.Delivered &&
+            w.Status != WorkOrderStatus.Cancelled);
+
+        return View(customer);
+    }
 
         // GET: Customers/Create
         public IActionResult Create()

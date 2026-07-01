@@ -1,60 +1,193 @@
 @model WorkOrderFlow.Web.Models.Customer
+@using WorkOrderFlow.Web.Models
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Customer Details";
+
+    var quotes = ViewData["Quotes"] as List<Quote> ?? new();
+    var workOrders = ViewData["WorkOrders"] as List<WorkOrder> ?? new();
+
+    var quoteTotal = ViewData["QuoteTotal"] as decimal? ?? 0m;
+    var openWorkOrders = ViewData["OpenWorkOrders"] as int? ?? 0;
 }
 
-<h1>Details</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-0">Customer Details</h1>
+        <div class="text-muted">Customer profile, quotes and work order history.</div>
+    </div>
 
-<div>
-    <h4>Customer</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FullName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FullName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CompanyName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CompanyName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Phone)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Phone)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Address)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Address)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Notes)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Notes)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-    </dl>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Customer</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to Customers</a>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h4 class="mb-3">@Model.FullName</h4>
+
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Company:</strong> @(Model.CompanyName ?? "-")</p>
+                <p><strong>Phone:</strong> @Model.Phone</p>
+                <p><strong>Email:</strong> @(Model.Email ?? "-")</p>
+            </div>
+
+            <div class="col-md-6">
+                <p><strong>Address:</strong> @(Model.Address ?? "-")</p>
+                <p><strong>Created:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+                <p><strong>Notes:</strong> @(Model.Notes ?? "-")</p>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted">Quotes</div>
+                <h2>@quotes.Count</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-success">
+            <div class="card-body">
+                <div class="text-muted">Total Quoted Value</div>
+                <h2>@quoteTotal.ToString("N2") ₺</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body">
+                <div class="text-muted">Open Work Orders</div>
+                <h2>@openWorkOrders</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-3">Related Quotes</h3>
+
+@if (!quotes.Any())
+{
+    <div class="alert alert-info">
+        No quotes found for this customer.
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Valid Until</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in quotes)
+{
+    var total = item.LaborCost + item.PartsCost - item.Discount;
+
+    var statusClass = item.Status switch
+    {
+        QuoteStatus.Draft => "badge bg-secondary",
+        QuoteStatus.Sent => "badge bg-primary",
+        QuoteStatus.Accepted => "badge bg-success",
+        QuoteStatus.Rejected => "badge bg-danger",
+        QuoteStatus.Expired => "badge bg-dark",
+        _ => "badge bg-secondary"
+    };
+
+            <tr>
+                <td>@item.Title</td>
+                <td><span class="@statusClass">@item.Status</span></td>
+                <td><strong>@total.ToString("N2") ₺</strong></td>
+                <td>@item.ValidUntil?.ToString("dd.MM.yyyy HH:mm")</td>
+                <td>@item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                <td>
+                    <a asp-controller="Quotes" asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-controller="Quotes" asp-action="DownloadPdf" asp-route-id="@item.Id">PDF</a> |
+                    <a asp-controller="Quotes" asp-action="CreateWorkOrderFromQuote" asp-route-id="@item.Id">Create/Open Work Order</a>
+                </td>
+            </tr>
+}
+        </tbody>
+    </table>
+}
+
+<h3 class="mt-4 mb-3">Related Work Orders</h3>
+
+@if (!workOrders.Any())
+{
+    <div class="alert alert-info">
+        No work orders found for this customer.
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Quote</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Due Date</th>
+                <th>Completed</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+@foreach (var item in workOrders)
+{
+    var statusClass = item.Status switch
+    {
+        WorkOrderStatus.New => "badge bg-secondary",
+        WorkOrderStatus.Approved => "badge bg-info text-dark",
+        WorkOrderStatus.InProgress => "badge bg-primary",
+        WorkOrderStatus.WaitingParts => "badge bg-warning text-dark",
+        WorkOrderStatus.Completed => "badge bg-success",
+        WorkOrderStatus.Delivered => "badge bg-dark",
+        WorkOrderStatus.Cancelled => "badge bg-danger",
+        _ => "badge bg-secondary"
+    };
+
+    var priorityClass = item.Priority switch
+    {
+        WorkOrderPriority.Low => "badge bg-secondary",
+        WorkOrderPriority.Medium => "badge bg-info text-dark",
+        WorkOrderPriority.High => "badge bg-warning text-dark",
+        WorkOrderPriority.Urgent => "badge bg-danger",
+        _ => "badge bg-secondary"
+    };
+
+            <tr>
+                <td>@item.Title</td>
+                <td>@(item.Quote?.Title ?? "-")</td>
+                <td><span class="@statusClass">@item.Status</span></td>
+                <td><span class="@priorityClass">@item.Priority</span></td>
+                <td>@item.DueDate?.ToString("dd.MM.yyyy")</td>
+                <td>
+                    @(item.CompletedAt.HasValue
+                        ? item.CompletedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        : "-")
+                </td>
+                <td>
+                    <a asp-controller="WorkOrders" asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-controller="WorkOrders" asp-action="DownloadPdf" asp-route-id="@item.Id">PDF</a>
+                </td>
+            </tr>
+}
+        </tbody>
+    </table>
+}
