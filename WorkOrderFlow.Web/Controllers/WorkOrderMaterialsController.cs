@@ -3,23 +3,28 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
+using WorkOrderFlow.Web.Services;
 
 namespace WorkOrderFlow.Web.Controllers;
 
 public class WorkOrderMaterialsController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly InventoryStockService _stockService;
 
-    public WorkOrderMaterialsController(ApplicationDbContext context)
+    public WorkOrderMaterialsController(
+        ApplicationDbContext context,
+        InventoryStockService stockService)
     {
         _context = context;
+        _stockService = stockService;
     }
 
     public async Task<IActionResult> Index()
     {
         var materials = _context.WorkOrderMaterials
-            .Include(w => w.WorkOrder)
             .Include(w => w.InventoryItem)
+            .Include(w => w.WorkOrder)
             .OrderByDescending(w => w.UsedAt);
 
         return View(await materials.ToListAsync());
@@ -32,76 +37,70 @@ public class WorkOrderMaterialsController : Controller
             return NotFound();
         }
 
-        var material = await _context.WorkOrderMaterials
-            .Include(w => w.WorkOrder)
+        var workOrderMaterial = await _context.WorkOrderMaterials
             .Include(w => w.InventoryItem)
+            .Include(w => w.WorkOrder)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-        if (material == null)
+        if (workOrderMaterial == null)
         {
             return NotFound();
         }
 
-        return View(material);
+        return View(workOrderMaterial);
     }
 
-    public IActionResult Create()
+    public async Task<IActionResult> Create(int? workOrderId)
     {
-        PopulateSelectLists();
-        return View();
+        var material = new WorkOrderMaterial
+        {
+            WorkOrderId = workOrderId ?? 0,
+            UsedAt = DateTime.UtcNow
+        };
+
+        await PopulateDropDownsAsync(material.WorkOrderId);
+
+        return View(material);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("WorkOrderId,InventoryItemId,QuantityUsed,UnitPrice,UsedAt,Notes")] WorkOrderMaterial workOrderMaterial)
+    public async Task<IActionResult> Create(WorkOrderMaterial workOrderMaterial)
     {
-        var inventoryItem = await _context.InventoryItems.FindAsync(workOrderMaterial.InventoryItemId);
-
-        if (inventoryItem == null)
+        if (workOrderMaterial.QuantityUsed <= 0)
         {
-            ModelState.AddModelError("InventoryItemId", "Inventory item not found.");
-        }
-        else if (workOrderMaterial.QuantityUsed <= 0)
-        {
-            ModelState.AddModelError("QuantityUsed", "Quantity used must be greater than zero.");
-        }
-        else if (inventoryItem.QuantityOnHand < workOrderMaterial.QuantityUsed)
-        {
-            ModelState.AddModelError("QuantityUsed", $"Not enough stock. Available: {inventoryItem.QuantityOnHand}");
+            ModelState.AddModelError(nameof(workOrderMaterial.QuantityUsed), "Quantity used must be greater than zero.");
         }
 
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
-            if (workOrderMaterial.UnitPrice <= 0 && inventoryItem != null)
-            {
-                workOrderMaterial.UnitPrice = inventoryItem.SalePrice;
-            }
-
-            workOrderMaterial.UsedAt = workOrderMaterial.UsedAt == default
-                ? DateTime.UtcNow
-                : workOrderMaterial.UsedAt;
-
-            inventoryItem!.QuantityOnHand -= workOrderMaterial.QuantityUsed;
-
-            _context.WorkOrderMaterials.Add(workOrderMaterial);
-
-            _context.InventoryTransactions.Add(new InventoryTransaction
-            {
-                InventoryItemId = inventoryItem.Id,
-                WorkOrderId = workOrderMaterial.WorkOrderId,
-                Type = InventoryTransactionType.WorkOrderUsage,
-                QuantityChange = -workOrderMaterial.QuantityUsed,
-                QuantityAfter = inventoryItem.QuantityOnHand,
-                Notes = $"Material used on work order #{workOrderMaterial.WorkOrderId}"
-            });
-
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
+            await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+            return View(workOrderMaterial);
         }
 
-        PopulateSelectLists(workOrderMaterial);
-        return View(workOrderMaterial);
+        if (workOrderMaterial.UsedAt == default)
+        {
+            workOrderMaterial.UsedAt = DateTime.UtcNow;
+        }
+
+        _context.WorkOrderMaterials.Add(workOrderMaterial);
+
+        var success = await _stockService.ApplyStockMovementAsync(
+            workOrderMaterial.InventoryItemId,
+            -workOrderMaterial.QuantityUsed,
+            InventoryTransactionType.WorkOrderUsage,
+            $"Material used on work order #{workOrderMaterial.WorkOrderId}",
+            workOrderMaterial.WorkOrderId);
+
+        if (!success)
+        {
+            ModelState.AddModelError(nameof(workOrderMaterial.QuantityUsed), "Not enough stock for this material usage.");
+
+            await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+            return View(workOrderMaterial);
+        }
+
+        return RedirectToAction("Details", "WorkOrders", new { id = workOrderMaterial.WorkOrderId });
     }
 
     public async Task<IActionResult> Edit(int? id)
@@ -111,24 +110,36 @@ public class WorkOrderMaterialsController : Controller
             return NotFound();
         }
 
-        var material = await _context.WorkOrderMaterials.FindAsync(id);
+        var workOrderMaterial = await _context.WorkOrderMaterials.FindAsync(id);
 
-        if (material == null)
+        if (workOrderMaterial == null)
         {
             return NotFound();
         }
 
-        PopulateSelectLists(material);
-        return View(material);
+        await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+
+        return View(workOrderMaterial);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,WorkOrderId,InventoryItemId,QuantityUsed,UnitPrice,UsedAt,Notes")] WorkOrderMaterial workOrderMaterial)
+    public async Task<IActionResult> Edit(int id, WorkOrderMaterial workOrderMaterial)
     {
         if (id != workOrderMaterial.Id)
         {
             return NotFound();
+        }
+
+        if (workOrderMaterial.QuantityUsed <= 0)
+        {
+            ModelState.AddModelError(nameof(workOrderMaterial.QuantityUsed), "Quantity used must be greater than zero.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+            return View(workOrderMaterial);
         }
 
         var existingMaterial = await _context.WorkOrderMaterials
@@ -140,86 +151,80 @@ public class WorkOrderMaterialsController : Controller
             return NotFound();
         }
 
-        var oldInventoryItem = await _context.InventoryItems.FindAsync(existingMaterial.InventoryItemId);
-        var newInventoryItem = await _context.InventoryItems.FindAsync(workOrderMaterial.InventoryItemId);
+        await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        if (newInventoryItem == null)
+        if (existingMaterial.InventoryItemId == workOrderMaterial.InventoryItemId)
         {
-            ModelState.AddModelError("InventoryItemId", "Inventory item not found.");
-        }
-        else if (workOrderMaterial.QuantityUsed <= 0)
-        {
-            ModelState.AddModelError("QuantityUsed", "Quantity used must be greater than zero.");
-        }
+            var quantityChange = existingMaterial.QuantityUsed - workOrderMaterial.QuantityUsed;
 
-        if (ModelState.IsValid)
-        {
-            if (oldInventoryItem != null)
+            if (quantityChange != 0)
             {
-                oldInventoryItem.QuantityOnHand += existingMaterial.QuantityUsed;
+                var success = await _stockService.ApplyStockMovementAsync(
+                    workOrderMaterial.InventoryItemId,
+                    quantityChange,
+                    InventoryTransactionType.WorkOrderUsageCorrection,
+                    $"Material usage corrected on work order #{workOrderMaterial.WorkOrderId}",
+                    workOrderMaterial.WorkOrderId);
+
+                if (!success)
+                {
+                    ModelState.AddModelError(nameof(workOrderMaterial.QuantityUsed), "Stock correction could not be applied. Quantity cannot go below zero.");
+
+                    await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+                    return View(workOrderMaterial);
+                }
+            }
+        }
+        else
+        {
+            var reverseSuccess = await _stockService.ApplyStockMovementAsync(
+                existingMaterial.InventoryItemId,
+                existingMaterial.QuantityUsed,
+                InventoryTransactionType.WorkOrderUsageReversal,
+                $"Material usage reversed because item changed on work order #{existingMaterial.WorkOrderId}",
+                existingMaterial.WorkOrderId);
+
+            if (!reverseSuccess)
+            {
+                ModelState.AddModelError(string.Empty, "Previous material usage could not be reversed.");
+
+                await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+                return View(workOrderMaterial);
             }
 
-            if (newInventoryItem!.QuantityOnHand < workOrderMaterial.QuantityUsed)
+            var applySuccess = await _stockService.ApplyStockMovementAsync(
+                workOrderMaterial.InventoryItemId,
+                -workOrderMaterial.QuantityUsed,
+                InventoryTransactionType.WorkOrderUsageCorrection,
+                $"Material usage corrected with a different item on work order #{workOrderMaterial.WorkOrderId}",
+                workOrderMaterial.WorkOrderId);
+
+            if (!applySuccess)
             {
-                ModelState.AddModelError("QuantityUsed", $"Not enough stock. Available: {newInventoryItem.QuantityOnHand}");
-            }
-            else
-            {
-                if (workOrderMaterial.UnitPrice <= 0)
-                {
-                    workOrderMaterial.UnitPrice = newInventoryItem.SalePrice;
-                }
+                ModelState.AddModelError(nameof(workOrderMaterial.QuantityUsed), "Not enough stock for the selected replacement item.");
 
-                workOrderMaterial.UsedAt = workOrderMaterial.UsedAt == default
-                    ? DateTime.UtcNow
-                    : workOrderMaterial.UsedAt;
-
-                newInventoryItem.QuantityOnHand -= workOrderMaterial.QuantityUsed;
-
-                if (oldInventoryItem != null)
-                {
-                    _context.InventoryTransactions.Add(new InventoryTransaction
-                    {
-                        InventoryItemId = oldInventoryItem.Id,
-                        WorkOrderId = existingMaterial.WorkOrderId,
-                        Type = InventoryTransactionType.WorkOrderUsageReversal,
-                        QuantityChange = existingMaterial.QuantityUsed,
-                        QuantityAfter = oldInventoryItem.QuantityOnHand,
-                        Notes = $"Material usage edit reversal for work order #{existingMaterial.WorkOrderId}"
-                    });
-                }
-
-                _context.InventoryTransactions.Add(new InventoryTransaction
-                {
-                    InventoryItemId = newInventoryItem.Id,
-                    WorkOrderId = workOrderMaterial.WorkOrderId,
-                    Type = InventoryTransactionType.WorkOrderUsageCorrection,
-                    QuantityChange = -workOrderMaterial.QuantityUsed,
-                    QuantityAfter = newInventoryItem.QuantityOnHand,
-                    Notes = $"Material usage edited for work order #{workOrderMaterial.WorkOrderId}"
-                });
-
-                try
-                {
-                    _context.Update(workOrderMaterial);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!WorkOrderMaterialExists(workOrderMaterial.Id))
-                    {
-                        return NotFound();
-                    }
-
-                    throw;
-                }
-
-                return RedirectToAction(nameof(Index));
+                await PopulateDropDownsAsync(workOrderMaterial.WorkOrderId, workOrderMaterial.InventoryItemId);
+                return View(workOrderMaterial);
             }
         }
 
-        PopulateSelectLists(workOrderMaterial);
-        return View(workOrderMaterial);
+        try
+        {
+            _context.Update(workOrderMaterial);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!WorkOrderMaterialExists(workOrderMaterial.Id))
+            {
+                return NotFound();
+            }
+
+            throw;
+        }
+
+        return RedirectToAction("Details", "WorkOrders", new { id = workOrderMaterial.WorkOrderId });
     }
 
     public async Task<IActionResult> Delete(int? id)
@@ -229,64 +234,62 @@ public class WorkOrderMaterialsController : Controller
             return NotFound();
         }
 
-        var material = await _context.WorkOrderMaterials
-            .Include(w => w.WorkOrder)
+        var workOrderMaterial = await _context.WorkOrderMaterials
             .Include(w => w.InventoryItem)
+            .Include(w => w.WorkOrder)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-        if (material == null)
+        if (workOrderMaterial == null)
         {
             return NotFound();
         }
 
-        return View(material);
+        return View(workOrderMaterial);
     }
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var material = await _context.WorkOrderMaterials.FindAsync(id);
+        var workOrderMaterial = await _context.WorkOrderMaterials
+            .FirstOrDefaultAsync(m => m.Id == id);
 
-        if (material != null)
+        if (workOrderMaterial == null)
         {
-            var inventoryItem = await _context.InventoryItems.FindAsync(material.InventoryItemId);
-
-            if (inventoryItem != null)
-            {
-                inventoryItem.QuantityOnHand += material.QuantityUsed;
-
-                _context.InventoryTransactions.Add(new InventoryTransaction
-                {
-                    InventoryItemId = inventoryItem.Id,
-                    WorkOrderId = material.WorkOrderId,
-                    Type = InventoryTransactionType.WorkOrderUsageReversal,
-                    QuantityChange = material.QuantityUsed,
-                    QuantityAfter = inventoryItem.QuantityOnHand,
-                    Notes = $"Material usage deleted from work order #{material.WorkOrderId}"
-                });
-            }
-
-            _context.WorkOrderMaterials.Remove(material);
-            await _context.SaveChangesAsync();
+            return NotFound();
         }
 
-        return RedirectToAction(nameof(Index));
+        var workOrderId = workOrderMaterial.WorkOrderId;
+
+        _context.WorkOrderMaterials.Remove(workOrderMaterial);
+
+        var success = await _stockService.ApplyStockMovementAsync(
+            workOrderMaterial.InventoryItemId,
+            workOrderMaterial.QuantityUsed,
+            InventoryTransactionType.WorkOrderUsageReversal,
+            $"Material usage deleted from work order #{workOrderId}",
+            workOrderId);
+
+        if (!success)
+        {
+            return BadRequest("Material usage could not be reversed.");
+        }
+
+        return RedirectToAction("Details", "WorkOrders", new { id = workOrderId });
     }
 
-    private void PopulateSelectLists(WorkOrderMaterial? material = null)
+    private async Task PopulateDropDownsAsync(int? selectedWorkOrderId = null, int? selectedInventoryItemId = null)
     {
-        ViewData["WorkOrderId"] = new SelectList(
-            _context.WorkOrders.OrderBy(w => w.Title),
-            "Id",
-            "Title",
-            material?.WorkOrderId);
+        var workOrders = await _context.WorkOrders
+            .OrderByDescending(w => w.CreatedAt)
+            .ToListAsync();
 
-        ViewData["InventoryItemId"] = new SelectList(
-            _context.InventoryItems.OrderBy(i => i.Name),
-            "Id",
-            "Name",
-            material?.InventoryItemId);
+        var inventoryItems = await _context.InventoryItems
+            .OrderBy(i => i.Name)
+            .ToListAsync();
+
+        ViewData["WorkOrderId"] = new SelectList(workOrders, "Id", "Title", selectedWorkOrderId);
+        ViewData["InventoryItemId"] = new SelectList(inventoryItems, "Id", "Name", selectedInventoryItemId);
     }
 
     private bool WorkOrderMaterialExists(int id)
