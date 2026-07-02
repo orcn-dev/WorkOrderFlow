@@ -2,6 +2,7 @@
 using QuestPDF.Infrastructure;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Services;
+using Microsoft.AspNetCore.Identity;
 
 QuestPDF.Settings.License = LicenseType.Community;
 
@@ -12,6 +13,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddRazorPages();
 builder.Services.AddScoped<QuotePdfService>();
 builder.Services.AddScoped<WorkOrderPdfService>();
 builder.Services.AddScoped<WorkOrderWorkflowService>();
@@ -37,9 +45,13 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapRazorPages();
+
 
 app.MapControllerRoute(
     name: "default",
