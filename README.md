@@ -17,6 +17,11 @@ WorkOrderFlow is built as a portfolio-grade business application. It demonstrate
 
 The main goal of the project is not only to provide CRUD screens, but to model an actual business workflow with domain logic, reporting, audit-style history, and operational summaries.
 
+## Current Status
+
+This repository is currently at the first stable portfolio release stage.
+
+The application includes business workflow features, service-layer architecture, automated tests, CI, Docker support, Docker Compose support, demo seed data, and a health check endpoint.
 ---
 
 ## Features
