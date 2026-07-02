@@ -118,6 +118,8 @@ The main goal of the project is not only to provide CRUD screens, but to model a
 - QuestPDF
 - Chart.js
 - Git / GitHub
+- xUnit
+- GitHub Actions
 
 ---
 
@@ -184,7 +186,10 @@ WorkOrderFlow
 │   │
 │   ├── Services
 │   │   ├── QuotePdfService.cs
-│   │   └── WorkOrderPdfService.cs
+│   │   ├── WorkOrderPdfService.cs
+│   │   ├── WorkOrderWorkflowService.cs
+│   │   ├── InventoryStockService.cs
+│   │   └── QuoteToWorkOrderService.cs
 │   │
 │   ├── ViewModels
 │   │   ├── DashboardViewModel.cs
@@ -201,6 +206,11 @@ WorkOrderFlow
 │   │   └── Shared
 │   │
 │   └── Program.cs
+│
+├── WorkOrderFlow.Tests
+│   ├── InventoryStockServiceTests.cs
+│   ├── WorkOrderWorkflowServiceTests.cs
+│   └── QuoteToWorkOrderServiceTests.cs
 │
 ├── screenshots
 │
@@ -238,6 +248,31 @@ Represents a material used in a work order. It connects work orders to inventory
 ### InventoryTransaction
 
 Represents a stock movement. It records manual adjustments, work order usage, reversals, corrections, quantity changes, final quantity, and related work order information.
+
+---
+
+## Architecture Highlights
+
+The project includes a service layer to keep core business logic out of MVC controllers.
+
+Current service classes:
+
+- `WorkOrderWorkflowService`
+  - Handles work order status transitions
+  - Updates completed date behavior
+  - Creates work order status history records
+
+- `InventoryStockService`
+  - Handles inventory quantity changes
+  - Prevents stock from going below zero
+  - Records inventory transaction history
+
+- `QuoteToWorkOrderService`
+  - Converts quotes into work orders
+  - Prevents duplicate work orders for the same quote
+  - Marks converted quotes as accepted
+
+Controllers are mainly responsible for request handling, view rendering, redirects, and validation flow, while domain operations are handled by dedicated services.
 
 ---
 
@@ -305,6 +340,37 @@ PDF files include customer information, quote or work order details, pricing dat
 
 ---
 
+## Testing and CI
+
+The solution includes an automated test project:
+
+```text
+WorkOrderFlow.Tests
+```
+
+The tests currently cover the core service layer:
+
+- Inventory stock increases and decreases
+- Prevention of negative stock
+- Inventory transaction creation
+- Work order workflow status changes
+- Completed date handling
+- Work order status history creation
+- Quote-to-work-order conversion
+- Duplicate work order prevention
+
+Tests are written with xUnit and use SQLite in-memory databases.
+
+The repository also includes a GitHub Actions CI workflow that runs restore, build, and tests on every push and pull request to the `main` branch.
+
+Current test status:
+
+```text
+11 tests passing
+```
+
+---
+
 ## Getting Started
 
 ### Requirements
@@ -316,7 +382,7 @@ PDF files include customer information, quote or work order details, pricing dat
 ### Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/OrcnTester/WorkOrderFlow.git
 cd WorkOrderFlow
 ```
 
@@ -376,6 +442,7 @@ Workflow examples:
 ```
 
 ---
+
 ## Screenshots
 
 ### Dashboard
@@ -438,15 +505,13 @@ Possible next improvements:
 
 - Authentication and role-based access
 - User audit logs
-- Dedicated service layer for stock and workflow operations
-- Automated tests for quote conversion, stock movement, and work order workflow
 - PostgreSQL support
 - Docker support
-- CI/CD pipeline
 - Deployment to a cloud platform
 - More advanced dashboard charts
 - Printable customer summary report
 - Work order invoice generation
+- Cleaner validation and error messages
 
 ---
 
@@ -468,5 +533,9 @@ WorkOrderFlow is a full-stack ASP.NET Core MVC business application that demonst
 - Manual stock adjustment workflow
 - PDF generation
 - Real business workflow implementation
+- Service layer architecture
+- Automated service tests with xUnit
+- GitHub Actions CI pipeline
+- Quote conversion business logic
 
 It is designed as a practical operations management system for small businesses and service teams.
