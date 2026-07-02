@@ -17,6 +17,7 @@ builder.Services.AddScoped<WorkOrderPdfService>();
 builder.Services.AddScoped<WorkOrderWorkflowService>();
 builder.Services.AddScoped<InventoryStockService>();
 builder.Services.AddScoped<QuoteToWorkOrderService>();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -44,5 +45,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapHealthChecks("/health");
 
 app.Run();

@@ -394,6 +394,17 @@ http://localhost:5298
 ```
 For local Docker usage, the application applies EF Core migrations on startup and creates the SQLite database automatically inside the container.
 
+### Health check
+
+After running the container, the health endpoint can be checked at:
+
+```text
+http://localhost:5298/health
+
+Expected response:
+
+Healthy
+```
 
 ---
 

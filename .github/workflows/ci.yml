@@ -40,3 +40,16 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t workorderflow .
+
+      - name: Run Docker container
+        run: docker run -d --name workorderflow-test -p 5298:8080 workorderflow
+
+      - name: Wait for application startup
+        run: sleep 10
+
+      - name: Smoke test health endpoint
+        run: curl --fail http://localhost:5298/health
+
+      - name: Stop Docker container
+        if: always()
+        run: docker stop workorderflow-test
