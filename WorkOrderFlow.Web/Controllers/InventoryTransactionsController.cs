@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WorkOrderFlow.Web.Controllers;
-
+[Authorize]
 public class InventoryTransactionsController : Controller
 {
     private readonly ApplicationDbContext _context;

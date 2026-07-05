@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WorkOrderFlow.Web.Controllers
 {
+    [Authorize]
     public class CustomersController : Controller
     {
         private readonly ApplicationDbContext _context;

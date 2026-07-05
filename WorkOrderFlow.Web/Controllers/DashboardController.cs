@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
 using WorkOrderFlow.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WorkOrderFlow.Web.Controllers;
-
+[Authorize]
 public class DashboardController : Controller
 {
     private readonly ApplicationDbContext _context;

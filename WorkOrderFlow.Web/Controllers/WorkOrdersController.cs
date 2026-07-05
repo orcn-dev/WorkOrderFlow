@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
 using WorkOrderFlow.Web.Services;
-namespace WorkOrderFlow.Web.Controllers;
+using Microsoft.AspNetCore.Authorization;
 
+namespace WorkOrderFlow.Web.Controllers;
+[Authorize]
 public class WorkOrdersController : Controller
 {
     private readonly ApplicationDbContext _context;

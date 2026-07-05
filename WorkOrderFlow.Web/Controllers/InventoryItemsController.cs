@@ -4,8 +4,10 @@ using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Models;
 using WorkOrderFlow.Web.ViewModels;
 using WorkOrderFlow.Web.Services;
-namespace WorkOrderFlow.Web.Controllers;
+using Microsoft.AspNetCore.Authorization;
 
+namespace WorkOrderFlow.Web.Controllers;
+[Authorize]
 public class InventoryItemsController : Controller
 {
     private readonly ApplicationDbContext _context;

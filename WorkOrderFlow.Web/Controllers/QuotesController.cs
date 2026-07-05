@@ -8,9 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using WorkOrderFlow.Web.Data;
 using WorkOrderFlow.Web.Services;
 using WorkOrderFlow.Web.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace WorkOrderFlow.Web.Controllers
-{
+{   [Authorize]
     public class QuotesController : Controller
     {
         private readonly ApplicationDbContext _context;
