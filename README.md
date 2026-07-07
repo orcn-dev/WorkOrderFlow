@@ -437,8 +437,9 @@ To stop the container:
 ```bash
 docker compose down
 ```
-
+```markdown
 To remove the container and reset the database volume:
+```
 
 ```bash
 docker compose down -v
@@ -446,7 +447,19 @@ docker compose down -v
 
 ---
 
+## Demo Login
+
+When the application starts, a demo user is created automatically if it does not already exist.
+
+```text
+Email: demo@workorderflow.local
+Password: Demo123!
+```
+
+---
+
 ## Getting Started
+
 
 ### Requirements
 

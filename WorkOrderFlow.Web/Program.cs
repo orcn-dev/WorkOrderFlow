@@ -41,6 +41,7 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
 
     await DemoDataSeeder.SeedAsync(dbContext);
+    await IdentityDataSeeder.SeedAsync(scope.ServiceProvider);
 }
 app.UseHttpsRedirection();
 app.UseRouting();
